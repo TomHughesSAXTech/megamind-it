@@ -157,6 +157,12 @@
             font-size: 12px;
             color: #999;
         }
+        
+        .user-details .location {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
 
         .sign-out-btn {
             background: transparent;
@@ -801,6 +807,7 @@
             <div class="user-details">
                 <h3 id="userName"></h3>
                 <p id="userRole"></p>
+                <p id="userLocation" class="location"></p>
             </div>
             <div id="adminBadge" class="admin-badge hidden">Admin</div>
             <button id="signOutBtn" class="sign-out-btn">Sign Out</button>
@@ -1054,8 +1061,10 @@
             // Generate session ID
             sessionId = 'session_' + Date.now();
             
-            // Add welcome message
-            addMessage('bot', `Welcome back, ${userProfile.displayName}! I'm MegaMind IT, your AI-powered IT assistant. How can I help you with your IT needs today?`);
+            // Add personalized welcome message with context
+            const locationInfo = userProfile.officeLocation || userProfile.city || 'your location';
+            const deptInfo = userProfile.department || 'SAX Technology Advisors';
+            addMessage('bot', `Welcome back, ${userProfile.displayName}! I'm MegaMind IT, your AI-powered IT assistant. I see you're ${userProfile.jobTitle || 'working'} in ${deptInfo}${locationInfo !== 'your location' ? ` at ${locationInfo}` : ''}. How can I help you with your IT needs today?`);
         }
 
         // Sign in function
@@ -1118,8 +1127,8 @@
                 const response = await msalInstance.acquireTokenSilent(tokenRequest);
                 const accessToken = response.accessToken;
 
-                // Fetch user profile
-                const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
+                // Fetch user profile with extended properties
+                const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName,jobTitle,department,officeLocation,city,state,country,postalCode,mobilePhone,businessPhones', {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
@@ -1128,9 +1137,25 @@
                 if (profileResponse.ok) {
                     userProfile = await profileResponse.json();
                     
+                    console.log('User Profile Data:', userProfile); // Debug log
+                    
                     // Update UI with user information
                     userName.textContent = userProfile.displayName || 'User';
                     userRole.textContent = `${userProfile.jobTitle || 'Employee'} • ${userProfile.department || 'SAX Advisory Group'}`;
+                    
+                    // Display location information
+                    const locationParts = [];
+                    if (userProfile.officeLocation) locationParts.push(userProfile.officeLocation);
+                    if (userProfile.city) locationParts.push(userProfile.city);
+                    if (userProfile.state) locationParts.push(userProfile.state);
+                    if (userProfile.country) locationParts.push(userProfile.country);
+                    
+                    const userLocation = document.getElementById('userLocation');
+                    if (userLocation && locationParts.length > 0) {
+                        userLocation.textContent = `📍 ${locationParts.join(', ')}`;
+                    } else if (userLocation) {
+                        userLocation.textContent = '📍 Location not specified';
+                    }
                     
                     // Set user avatar (first letter of name)
                     const initials = userProfile.displayName ? 
@@ -1146,13 +1171,19 @@
                         adminBadge.classList.add('hidden');
                     }
 
-                    // Store user context for API calls
+                    // Store enhanced user context for API calls
                     window.userContext = {
                         userProfile: {
-                            name: userProfile.displayName,
-                            email: userProfile.userPrincipalName,
-                            jobTitle: userProfile.jobTitle,
-                            department: userProfile.department,
+                            name: userProfile.displayName || 'Unknown User',
+                            email: userProfile.userPrincipalName || userProfile.mail || 'unknown@saxadvisorygroup.com',
+                            jobTitle: userProfile.jobTitle || 'Employee',
+                            department: userProfile.department || 'SAX Advisory Group',
+                            officeLocation: userProfile.officeLocation || 'Not specified',
+                            city: userProfile.city || '',
+                            state: userProfile.state || '',
+                            country: userProfile.country || '',
+                            mobilePhone: userProfile.mobilePhone || '',
+                            businessPhones: userProfile.businessPhones || [],
                             contextualRole: isAdmin ? 'IT Leadership' : 'Employee',
                             permissions: {
                                 canCreateUsers: isAdmin,
@@ -1238,7 +1269,19 @@
                     sessionId: sessionId,
                     selectedVoice: voiceSelect.value,
                     userContext: window.userContext || {},
-                    userProfile: userProfile || {},
+                    userProfile: {
+                        displayName: userProfile?.displayName || 'Unknown User',
+                        email: userProfile?.userPrincipalName || userProfile?.mail || '',
+                        jobTitle: userProfile?.jobTitle || '',
+                        department: userProfile?.department || '',
+                        location: {
+                            office: userProfile?.officeLocation || '',
+                            city: userProfile?.city || '',
+                            state: userProfile?.state || '',
+                            country: userProfile?.country || ''
+                        },
+                        phone: userProfile?.mobilePhone || userProfile?.businessPhones?.[0] || ''
+                    },
                     attachedFiles: attachedFiles,
                     ttsProvider: 'elevenlabs',  // Use ElevenLabs for TTS
                     ttsVoice: voiceSelect.value  // Will map to ElevenLabs voice ID in n8n
