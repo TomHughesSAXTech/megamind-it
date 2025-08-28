@@ -11,8 +11,8 @@ MegaMind IT is an Azure Static Web App that provides an AI-powered IT assistant 
 ### Frontend Structure
 - **Single Page Application**: Pure HTML/CSS/JavaScript (no build process)
 - **Authentication**: Microsoft Authentication Library (MSAL) for Azure AD integration
-  - Client ID: `22bf09b4-93d2-4194-a601-4f57ce58c777`
-  - Tenant ID: `3d659328-eef0-44f7-8481-5833e1051aec`
+  - Client ID: `675b5149-fad2-4c8e-a587-097e9fff59dd` (MegaMind IT for saxadvisorygroup.com)
+  - Tenant ID: `a33e9b66-a6ef-43bf-9702-7cb4301d0a16` (saxadvisorygroup.com)
 - **Backend Integration**: n8n webhook at `https://workflows.saxtechnology.com/webhook/megamind-it-chat`
 - **Voice Features**: Web Audio API for recording and text-to-speech playback
 
